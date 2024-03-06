@@ -3,10 +3,14 @@ package ru.reosfire.money.manage.authentication.routes
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.*
+import io.ktor.http.auth.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.date.*
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.codec.digest.DigestUtils
 import org.litote.kmongo.coroutine.CoroutineCollection
@@ -17,6 +21,7 @@ import ru.reosfire.money.manage.authentication.User
 import java.security.SecureRandom
 import java.util.*
 
+private const val AUTH_COOKIE = "AUTH_TOKEN"
 private const val MIN_LOGIN_LENGTH = 3
 private val PASSWORD_REGEX = Regex("[a-zA-Z0-9_-]*")
 
@@ -79,7 +84,55 @@ fun Application.setupAuthenticationRoutes(
                 .withClaim("username", storedUser.login)
                 .withExpiresAt(Date(System.currentTimeMillis() + 600000))
                 .sign(Algorithm.HMAC256(jwtConfiguration.secret))
-            call.respond(hashMapOf("token" to token))
+
+            call.response.cookies.append(AUTH_COOKIE, token)
+            call.respond(HttpStatusCode.OK)
+        }
+
+        get("/logout") {
+            call.response.cookies.append(
+                Cookie(
+                    name = AUTH_COOKIE,
+                    value = "",
+                    expires = GMTDate.START
+                )
+            )
+            call.respond(HttpStatusCode.OK)
+        }
+
+        authenticate {
+            get("/isLoggedIn") {
+                call.respond(HttpStatusCode.OK)
+            }
+        }
+    }
+}
+
+fun Application.setupJwt(jwtConfiguration: JWTConfiguration) {
+    authentication {
+        jwt {
+            val algorithm = Algorithm.HMAC256(jwtConfiguration.secret)
+            verifier(JWT
+                .require(algorithm)
+                .withAudience(jwtConfiguration.audience)
+                .withIssuer(jwtConfiguration.issuer)
+                .build())
+
+            authHeader { call ->
+                val cookieValue = call.request.cookies[AUTH_COOKIE] ?: return@authHeader null
+
+                try {
+                    parseAuthorizationHeader("Bearer $cookieValue")
+                } catch (cause: IllegalArgumentException) {
+                    null
+                }
+            }
+
+            validate { credential ->
+                credential.payload.takeUnless {
+                    it.getClaim("username").asString().isNullOrBlank()
+                }?.let { JWTPrincipal(it) }
+            }
         }
     }
 }
