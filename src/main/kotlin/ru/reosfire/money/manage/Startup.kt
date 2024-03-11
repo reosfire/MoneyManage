@@ -1,9 +1,6 @@
 package ru.reosfire.money.manage
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
 import com.mongodb.ConnectionString
-import io.ktor.http.auth.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -13,6 +10,7 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.litote.kmongo.coroutine.CoroutineClient
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.CoroutineDatabase
 import org.litote.kmongo.coroutine.coroutine
@@ -31,15 +29,19 @@ fun connectionStringByEnv(): ConnectionString {
     return ConnectionString("mongodb://$user:$password@$host/")
 }
 
-fun createDatabase(): CoroutineDatabase {
+fun getDbClient(): CoroutineClient {
     return KMongo.createClient(
         connectionStringByEnv()
-    ).coroutine.getDatabase("MoneyManage")
+    ).coroutine
 }
 
+fun CoroutineClient.getDatabase(): CoroutineDatabase =
+    getDatabase("MoneyManage")
+
+fun CoroutineDatabase.getUsersCollection(): CoroutineCollection<User> =
+    getCollection<User>("users")
 fun main() {
-    val database = createDatabase()
-    val usersCollection = database.getCollection<User>("users")
+    val client = getDbClient()
     val jwtConfiguration = JWTConfiguration.byEnvironment()
 
     val server = embeddedServer(
@@ -50,9 +52,9 @@ fun main() {
         setupJwt(jwtConfiguration)
 
         setupContentNegotiation()
-        setupAuthenticationRoutes(jwtConfiguration, usersCollection)
+        setupAuthenticationRoutes(jwtConfiguration, client)
 
-        setupSecuredRoutes(usersCollection)
+        setupSecuredRoutes(client)
     }
 
     server.start(wait = true)
@@ -64,12 +66,14 @@ fun Application.setupContentNegotiation() {
     }
 }
 
-fun Application.setupSecuredRoutes(users: CoroutineCollection<User>) {
+fun Application.setupSecuredRoutes(client: CoroutineClient) {
     routing {
         authenticate {
             get("/") {
                 val principal = call.principal<JWTPrincipal>()
                 val claim = principal?.getClaim("username", String::class)
+
+                val users = client.getDatabase().getUsersCollection()
 
                 users.findOne(User::login eq claim)?.let { call.respond(it) }
             }

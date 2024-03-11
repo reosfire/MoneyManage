@@ -1,3 +1,5 @@
+import io.ktor.plugin.features.*
+
 val ktorVersion: String by project
 val kotlinVersion: String by project
 val logbackVersion: String by project
@@ -15,7 +17,7 @@ group = "ru.reosfire"
 version = "1.0"
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(19)
 }
 
 repositories {

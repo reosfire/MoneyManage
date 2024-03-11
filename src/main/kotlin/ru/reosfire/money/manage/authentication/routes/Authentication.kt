@@ -13,11 +13,14 @@ import io.ktor.server.routing.*
 import io.ktor.util.date.*
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.codec.digest.DigestUtils
+import org.litote.kmongo.coroutine.CoroutineClient
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.eq
 import ru.reosfire.money.manage.authentication.JWTConfiguration
 import ru.reosfire.money.manage.authentication.LoginPassword
 import ru.reosfire.money.manage.authentication.User
+import ru.reosfire.money.manage.getDatabase
+import ru.reosfire.money.manage.getUsersCollection
 import java.security.SecureRandom
 import java.util.*
 
@@ -27,7 +30,7 @@ private val PASSWORD_REGEX = Regex("[a-zA-Z0-9_-]*")
 
 fun Application.setupAuthenticationRoutes(
     jwtConfiguration: JWTConfiguration,
-    users: CoroutineCollection<User>,
+    client: CoroutineClient,
 ) {
     routing {
         post("/register") {
@@ -43,6 +46,7 @@ fun Application.setupAuthenticationRoutes(
             }
 
             // TODO check weak password?
+            val users = client.getDatabase().getUsersCollection()
 
             val foundUser = users.findOne(loginPassword::login eq loginPassword.login)
             if (foundUser != null) {
@@ -63,6 +67,7 @@ fun Application.setupAuthenticationRoutes(
             }
 
             // TODO: validation
+            val users = client.getDatabase().getUsersCollection()
 
             val storedUser = users.findOne(User::login eq sent.login)
             if (storedUser == null) {
@@ -77,12 +82,11 @@ fun Application.setupAuthenticationRoutes(
                 return@post
             }
 
-
             val token = JWT.create()
                 .withAudience(jwtConfiguration.audience)
                 .withIssuer(jwtConfiguration.issuer)
                 .withClaim("username", storedUser.login)
-                .withExpiresAt(Date(System.currentTimeMillis() + 600000))
+                .withExpiresAt(Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000))
                 .sign(Algorithm.HMAC256(jwtConfiguration.secret))
 
             call.response.cookies.append(AUTH_COOKIE, token)
