@@ -1,6 +1,8 @@
 package ru.reosfire.money.manage
 
 import com.mongodb.ConnectionString
+import com.mongodb.MongoClientSettings
+import com.mongodb.connection.ConnectionPoolSettings
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -20,6 +22,7 @@ import ru.reosfire.money.manage.authentication.JWTConfiguration
 import ru.reosfire.money.manage.authentication.User
 import ru.reosfire.money.manage.authentication.routes.setupAuthenticationRoutes
 import ru.reosfire.money.manage.authentication.routes.setupJwt
+import java.util.concurrent.TimeUnit
 
 fun connectionStringByEnv(): ConnectionString {
     val user = System.getenv("MONGO_USER")
@@ -30,6 +33,12 @@ fun connectionStringByEnv(): ConnectionString {
 }
 
 fun getDbClient(): CoroutineClient {
+    MongoClientSettings.builder()
+        .applyConnectionString(connectionStringByEnv())
+        .applyToConnectionPoolSettings {
+            it.maxConnectionLifeTime(1, TimeUnit.MINUTES)
+            it.maxConnectionIdleTime(1, TimeUnit.MINUTES)
+        }
     return KMongo.createClient(
         connectionStringByEnv()
     ).coroutine
