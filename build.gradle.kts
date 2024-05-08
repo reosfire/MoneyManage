@@ -22,6 +22,7 @@ kotlin {
 
 repositories {
     mavenCentral()
+    maven("https://jitpack.io")
 }
 
 dependencies {
@@ -42,6 +43,8 @@ dependencies {
 
     // Codec
     implementation("commons-codec:commons-codec:$commonsCodecVersion")
+
+    implementation("io.github.kotlin-telegram-bot.kotlin-telegram-bot:telegram:6.1.0")
 }
 
 application {

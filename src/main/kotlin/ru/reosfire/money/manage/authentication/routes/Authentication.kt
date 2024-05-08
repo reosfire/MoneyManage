@@ -13,14 +13,15 @@ import io.ktor.server.routing.*
 import io.ktor.util.date.*
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.codec.digest.DigestUtils
-import org.litote.kmongo.coroutine.CoroutineClient
-import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.eq
+import ru.reosfire.money.manage.authentication.IUserCredentials
 import ru.reosfire.money.manage.authentication.JWTConfiguration
-import ru.reosfire.money.manage.authentication.LoginPassword
-import ru.reosfire.money.manage.authentication.User
-import ru.reosfire.money.manage.getDatabase
-import ru.reosfire.money.manage.getUsersCollection
+import ru.reosfire.money.manage.authentication.LoginData
+import ru.reosfire.money.manage.authentication.RegisterData
+import ru.reosfire.money.manage.model.DB
+import ru.reosfire.money.manage.model.auth.User
+import ru.reosfire.money.manage.model.telegram.TelegramAuthData
+import ru.reosfire.money.manage.telegram.TGBot
 import java.security.SecureRandom
 import java.util.*
 
@@ -30,11 +31,12 @@ private val PASSWORD_REGEX = Regex("[a-zA-Z0-9_-]*")
 
 fun Application.setupAuthenticationRoutes(
     jwtConfiguration: JWTConfiguration,
-    client: CoroutineClient,
+    db: DB,
+    bot: TGBot,
 ) {
     routing {
         post("/register") {
-            val loginPassword = call.receive<LoginPassword>()
+            val loginPassword = call.receive<RegisterData>()
 
             if (!loginPassword.login.matches(PASSWORD_REGEX)) {
                 call.respond(HttpStatusCode.BadRequest, "Login should match [a-zA-Z0-9_-]")
@@ -46,7 +48,7 @@ fun Application.setupAuthenticationRoutes(
             }
 
             // TODO check weak password?
-            val users = client.getDatabase().getUsersCollection()
+            val users = db.getUsersCollection()
 
             val foundUser = users.findOne(loginPassword::login eq loginPassword.login)
             if (foundUser != null) {
@@ -54,12 +56,33 @@ fun Application.setupAuthenticationRoutes(
                 return@post
             }
 
-            users.insertOne(loginPassword.toHashed())
+            val telegramDataCollection = db.getTelegramRequestsCollection()
+            val telegramData = telegramDataCollection.findOne(TelegramAuthData::token eq loginPassword.telegramToken)
+            if (telegramData == null) {
+                call.respond(HttpStatusCode.BadRequest, "Sent registration with invalid telegram token")
+                return@post
+            }
+            if (!telegramData.confirmed) {
+                call.respond(HttpStatusCode.ExpectationFailed, "Telegram attach request must be confirmed to finish registration")
+                return@post
+            }
+
+            val salt = randomSalt()
+
+            users.insertOne(User(
+                login = loginPassword.login,
+                hash = loginPassword.getHash(salt),
+                salt = salt,
+                telegramId = telegramData.userTgId!!,
+                telegramChatId = telegramData.userChatId!!,
+            ))
             call.respond(HttpStatusCode.OK, "Successfully registered")
+
+            telegramDataCollection.deleteOne(TelegramAuthData::token eq loginPassword.telegramToken)
         }
 
         post("/login") {
-            val sent = call.receive<LoginPassword>()
+            val sent = call.receive<LoginData>()
 
             if (!sent.login.matches(PASSWORD_REGEX)) {
                 call.respond(HttpStatusCode.BadRequest, "Login should match [a-zA-Z0-9_-]")
@@ -67,7 +90,7 @@ fun Application.setupAuthenticationRoutes(
             }
 
             // TODO: validation
-            val users = client.getDatabase().getUsersCollection()
+            val users = db.getUsersCollection()
 
             val storedUser = users.findOne(User::login eq sent.login)
             if (storedUser == null) {
@@ -75,9 +98,9 @@ fun Application.setupAuthenticationRoutes(
                 return@post
             }
 
-            val sentUser = sent.toHashed(salt = storedUser.salt)
+            val sentHash = sent.getHash(salt = storedUser.salt)
 
-            if (sentUser.hash != storedUser.hash) {
+            if (sentHash != storedUser.hash) {
                 call.respond(HttpStatusCode.Unauthorized, "Wrong credentials")
                 return@post
             }
@@ -91,6 +114,8 @@ fun Application.setupAuthenticationRoutes(
 
             call.response.cookies.append(AUTH_COOKIE, token)
             call.respond(HttpStatusCode.OK)
+
+            bot.sendLoginMessage(storedUser.telegramId)
         }
 
         get("/logout") {
@@ -147,10 +172,5 @@ private fun randomSalt(length: Int = 32): String {
     return Hex.encodeHexString(randomBytes)
 }
 
-private fun LoginPassword.toHashed(
-    salt: String = randomSalt()
-) = User(
-    login = login,
-    hash = DigestUtils.sha256Hex("$salt$password"),
-    salt = salt,
-)
+private fun IUserCredentials.getHash(salt: String) =
+    DigestUtils.sha256Hex("$salt$password")
