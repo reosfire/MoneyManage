@@ -8,15 +8,13 @@ interface IUserCredentials {
 }
 
 @Serializable
-/** DTO to be passed through network from client */
-data class LoginData (
+data class LoginData(
     override val login: String,
     override val password: String,
 ): IUserCredentials
 
 @Serializable
-/** DTO to be passed through network from client */
-data class RegisterData (
+data class RegisterData(
     override val login: String,
     override val password: String,
     val telegramToken: String,

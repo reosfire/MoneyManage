@@ -15,7 +15,8 @@ import ru.reosfire.money.manage.authentication.JWTConfiguration
 import ru.reosfire.money.manage.authentication.routes.setupAuthenticationRoutes
 import ru.reosfire.money.manage.authentication.routes.setupJwt
 import ru.reosfire.money.manage.model.DB
-import ru.reosfire.money.manage.model.auth.User
+import ru.reosfire.money.manage.model.User
+import ru.reosfire.money.manage.shoplist.setupShopListRoutes
 import ru.reosfire.money.manage.telegram.TGBot
 
 fun main() {
@@ -40,6 +41,8 @@ fun main() {
             }
         }
         with(tgBot) { setupRoutes() }
+
+        setupShopListRoutes(db)
     }
 
     server.start(wait = true)
@@ -54,11 +57,11 @@ private fun Application.setupContentNegotiation() {
 private fun Route.setupSecuredRoutes(db: DB) {
     get("/") {
         val principal = call.principal<JWTPrincipal>()
-        val claim = principal?.getClaim("username", String::class)
+        val username = principal?.getClaim("username", String::class)
 
         val users = db.getUsersCollection()
 
-        users.findOne(User::login eq claim)?.let { call.respond(it) }
+        users.findOne(User::login eq username)?.let { call.respond(it) }
     }
 }
 

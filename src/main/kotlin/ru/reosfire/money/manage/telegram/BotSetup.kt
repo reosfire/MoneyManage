@@ -14,7 +14,7 @@ import org.litote.kmongo.combine
 import org.litote.kmongo.eq
 import org.litote.kmongo.setValue
 import ru.reosfire.money.manage.model.DB
-import ru.reosfire.money.manage.model.telegram.TelegramAuthData
+import ru.reosfire.money.manage.model.TelegramAuthData
 import java.util.*
 
 

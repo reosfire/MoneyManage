@@ -18,9 +18,7 @@ import ru.reosfire.money.manage.authentication.IUserCredentials
 import ru.reosfire.money.manage.authentication.JWTConfiguration
 import ru.reosfire.money.manage.authentication.LoginData
 import ru.reosfire.money.manage.authentication.RegisterData
-import ru.reosfire.money.manage.model.DB
-import ru.reosfire.money.manage.model.auth.User
-import ru.reosfire.money.manage.model.telegram.TelegramAuthData
+import ru.reosfire.money.manage.model.*
 import ru.reosfire.money.manage.telegram.TGBot
 import java.security.SecureRandom
 import java.util.*
@@ -48,9 +46,9 @@ fun Application.setupAuthenticationRoutes(
             }
 
             // TODO check weak password?
-            val users = db.getUsersCollection()
+            val usersCollection = db.getUsersCollection()
 
-            val foundUser = users.findOne(loginPassword::login eq loginPassword.login)
+            val foundUser = usersCollection.findOne(loginPassword::login eq loginPassword.login)
             if (foundUser != null) {
                 call.respond(HttpStatusCode.Conflict, "User with that login already exist")
                 return@post
@@ -67,15 +65,29 @@ fun Application.setupAuthenticationRoutes(
                 return@post
             }
 
+            val roomId = UUID.randomUUID().toString()
+            val initialRoom = Room(
+                id = roomId,
+                name = "${loginPassword.login}'s room",
+                shopList = ShopList(listOf()),
+                users = listOf(loginPassword.login)
+            )
+
+            val roomsCollection = db.getRoomsCollection()
+            roomsCollection.insertOne(initialRoom)
+
             val salt = randomSalt()
 
-            users.insertOne(User(
+            val user = User(
                 login = loginPassword.login,
                 hash = loginPassword.getHash(salt),
                 salt = salt,
                 telegramId = telegramData.userTgId!!,
                 telegramChatId = telegramData.userChatId!!,
-            ))
+                rooms = listOf(roomId),
+            )
+
+            usersCollection.insertOne(user)
             call.respond(HttpStatusCode.OK, "Successfully registered")
 
             telegramDataCollection.deleteOne(TelegramAuthData::token eq loginPassword.telegramToken)
