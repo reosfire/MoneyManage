@@ -10,7 +10,10 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.websocket.*
 import io.ktor.util.date.*
+import io.ktor.websocket.*
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.codec.digest.DigestUtils
 import org.litote.kmongo.eq
@@ -19,6 +22,7 @@ import ru.reosfire.money.manage.authentication.JWTConfiguration
 import ru.reosfire.money.manage.authentication.LoginData
 import ru.reosfire.money.manage.authentication.RegisterData
 import ru.reosfire.money.manage.model.*
+import ru.reosfire.money.manage.telegram.AttachmentEvent
 import ru.reosfire.money.manage.telegram.TGBot
 import java.security.SecureRandom
 import java.util.*
@@ -33,6 +37,30 @@ fun Application.setupAuthenticationRoutes(
     bot: TGBot,
 ) {
     routing {
+        webSocket("/tg-linkage") {
+            val token = call.parameters["token"]
+
+            try {
+                bot.attachmentEventsFlow.collect { event ->
+                    when (event) {
+                        is AttachmentEvent.Cancelled -> {
+                            if (event.telegramToken == token)
+                                outgoing.send(Frame.Text("cancelled"))
+                        }
+                        is AttachmentEvent.Confirmed -> {
+                            if (event.telegramToken == token)
+                                outgoing.send(Frame.Text("confirmed;${event.username}"))
+                        }
+                    }
+                }
+            } catch (e: ClosedReceiveChannelException) {
+                println("onClose ${closeReason.await()}")
+            } catch (e: Throwable) {
+                println("onError ${closeReason.await()}")
+                e.printStackTrace()
+            }
+        }
+
         post("/register") {
             val loginPassword = call.receive<RegisterData>()
 

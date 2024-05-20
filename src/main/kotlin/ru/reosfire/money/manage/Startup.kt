@@ -10,6 +10,7 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.websocket.*
 import org.litote.kmongo.eq
 import ru.reosfire.money.manage.authentication.JWTConfiguration
 import ru.reosfire.money.manage.authentication.routes.setupAuthenticationRoutes
@@ -30,6 +31,7 @@ fun main() {
         port = 25530,
         host = "0.0.0.0"
     ) {
+        install(WebSockets)
         setupJwt(jwtConfiguration)
 
         setupContentNegotiation()

@@ -10,6 +10,7 @@ import com.github.kotlintelegrambot.entities.keyboard.InlineKeyboardButton
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.flow.MutableSharedFlow
 import org.litote.kmongo.combine
 import org.litote.kmongo.eq
 import org.litote.kmongo.setValue
@@ -17,8 +18,18 @@ import ru.reosfire.money.manage.model.DB
 import ru.reosfire.money.manage.model.TelegramAuthData
 import java.util.*
 
+sealed class AttachmentEvent {
+    data class Confirmed(
+        val telegramToken: String,
+        val username: String?,
+    ) : AttachmentEvent()
+
+    data class Cancelled(val telegramToken: String) : AttachmentEvent()
+}
 
 class TGBot(private val db: DB) {
+
+    val attachmentEventsFlow = MutableSharedFlow<AttachmentEvent>()
 
     private val bot = bot {
         token = System.getenv("TG_TOKEN")
@@ -58,6 +69,7 @@ class TGBot(private val db: DB) {
                     "Successfully confirmed. Please continue your registration on site or cancel",
                     replyMarkup = InlineKeyboardMarkup.createSingleButton(cancelButton),
                 )
+                attachmentEventsFlow.emit(AttachmentEvent.Confirmed(token, message.from?.username))
             }
 
             callbackQuery {
@@ -78,6 +90,7 @@ class TGBot(private val db: DB) {
                 )
 
                 bot.sendMessage(ChatId.fromId(user.userChatId), "Successfully canceled")
+                attachmentEventsFlow.emit(AttachmentEvent.Cancelled(token))
             }
         }
     }

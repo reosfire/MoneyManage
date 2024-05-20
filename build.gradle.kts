@@ -1,5 +1,3 @@
-import io.ktor.plugin.features.*
-
 val ktorVersion: String by project
 val kotlinVersion: String by project
 val logbackVersion: String by project
@@ -33,6 +31,7 @@ dependencies {
     implementation("io.ktor:ktor-server-auth-jwt-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-websockets:$ktorVersion")
 
     // Logging
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
