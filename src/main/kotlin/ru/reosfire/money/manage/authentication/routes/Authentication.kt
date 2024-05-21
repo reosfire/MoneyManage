@@ -21,7 +21,7 @@ import ru.reosfire.money.manage.authentication.IUserCredentials
 import ru.reosfire.money.manage.authentication.JWTConfiguration
 import ru.reosfire.money.manage.authentication.LoginData
 import ru.reosfire.money.manage.authentication.RegisterData
-import ru.reosfire.money.manage.model.*
+import ru.reosfire.money.manage.data.*
 import ru.reosfire.money.manage.telegram.AttachmentEvent
 import ru.reosfire.money.manage.telegram.TGBot
 import java.security.SecureRandom

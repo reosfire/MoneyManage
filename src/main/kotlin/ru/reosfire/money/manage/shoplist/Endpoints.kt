@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
 import org.litote.kmongo.addToSet
 import org.litote.kmongo.div
 import org.litote.kmongo.eq
-import ru.reosfire.money.manage.model.*
+import ru.reosfire.money.manage.data.*
 import java.util.*
 
 @Serializable

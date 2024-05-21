@@ -14,8 +14,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import org.litote.kmongo.combine
 import org.litote.kmongo.eq
 import org.litote.kmongo.setValue
-import ru.reosfire.money.manage.model.DB
-import ru.reosfire.money.manage.model.TelegramAuthData
+import ru.reosfire.money.manage.data.DB
+import ru.reosfire.money.manage.data.TelegramAuthData
 import java.util.*
 
 sealed class AttachmentEvent {

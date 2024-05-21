@@ -1,4 +1,4 @@
-package ru.reosfire.money.manage.model
+package ru.reosfire.money.manage.data
 
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
