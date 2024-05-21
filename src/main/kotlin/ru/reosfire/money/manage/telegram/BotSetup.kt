@@ -81,6 +81,26 @@ class TGBot(private val db: DB) {
                 bot.sendMessage(ChatId.fromId(user.userChatId), "Successfully canceled")
                 attachmentEventsFlow.emit(AttachmentEvent.Cancelled(token))
             }
+
+            command("change-password") {
+                val usersCollection = db.getUsersCollection()
+
+                val userId = message.from?.id
+                if (userId == null) {
+                    bot.sendMessage(chatId, "Err. Command used not by user?!")
+                    return@command
+                }
+
+                if (args.size != 2) {
+                    bot.sendMessage(chatId, "Err. Incorrect number of arguments.")
+                    return@command
+                }
+                val previousPassword = args[0]
+                val newPassword = args[1]
+
+
+
+            }
         }
     }
 

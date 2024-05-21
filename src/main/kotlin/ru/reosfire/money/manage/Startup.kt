@@ -31,7 +31,10 @@ fun main() {
         port = 25530,
         host = "0.0.0.0"
     ) {
-        install(WebSockets)
+        install(WebSockets) {
+            timeoutMillis = 24L * 60 * 60 * 1000
+            pingPeriodMillis = 1_000
+        }
         setupJwt(jwtConfiguration)
 
         setupContentNegotiation()
