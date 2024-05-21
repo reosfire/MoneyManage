@@ -11,21 +11,10 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.flow.MutableSharedFlow
-import org.litote.kmongo.combine
-import org.litote.kmongo.eq
-import org.litote.kmongo.setValue
+import org.litote.kmongo.*
 import ru.reosfire.money.manage.data.DB
 import ru.reosfire.money.manage.data.TelegramAuthData
 import java.util.*
-
-sealed class AttachmentEvent {
-    data class Confirmed(
-        val telegramToken: String,
-        val username: String?,
-    ) : AttachmentEvent()
-
-    data class Cancelled(val telegramToken: String) : AttachmentEvent()
-}
 
 class TGBot(private val db: DB) {
 
@@ -56,11 +45,11 @@ class TGBot(private val db: DB) {
 
                 telegramRequestsCollection.updateOne(
                     TelegramAuthData::token eq token,
-                    combine(
-                        setValue(TelegramAuthData::confirmed, true),
-                        setValue(TelegramAuthData::userTgId, userId),
-                        setValue(TelegramAuthData::userChatId, message.chat.id),
-                    ),
+                    set(
+                        TelegramAuthData::confirmed setTo true,
+                        TelegramAuthData::userTgId setTo userId,
+                        TelegramAuthData::userChatId setTo message.chat.id,
+                    )
                 )
 
                 val cancelButton = InlineKeyboardButton.CallbackData("Cancel", token)
@@ -114,4 +103,13 @@ class TGBot(private val db: DB) {
             }
         }
     }
+}
+
+sealed class AttachmentEvent {
+    data class Confirmed(
+        val telegramToken: String,
+        val username: String?,
+    ) : AttachmentEvent()
+
+    data class Cancelled(val telegramToken: String) : AttachmentEvent()
 }
