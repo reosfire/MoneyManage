@@ -98,8 +98,8 @@ class TGBot(private val db: DB) {
                 val previousPassword = args[0]
                 val newPassword = args[1]
 
-
-
+                //TODO complete or remove. if you want to complete -> each call will cause one db call
+                //     probably the best solution is to store session tokens inside jwt
             }
         }
     }

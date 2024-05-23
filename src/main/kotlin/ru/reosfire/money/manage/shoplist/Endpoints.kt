@@ -27,11 +27,11 @@ private data class ShopListItemAdd(
 
 @Serializable
 private data class ShopListItemEdit(
-    val name: String?,
-    val price: Double?,
-    val checked: Boolean?,
-    val emoji: String?,
-    val tags: List<Tag>,
+    val name: String? = null,
+    val price: Double? = null,
+    val checked: Boolean? = null,
+    val emoji: String? = null,
+    val tags: List<Tag>? = null,
 )
 
 private class CommonContext(

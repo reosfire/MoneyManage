@@ -32,8 +32,8 @@ fun main() {
         host = "0.0.0.0"
     ) {
         install(WebSockets) {
-            timeoutMillis = 24L * 60 * 60 * 1000
-            pingPeriodMillis = 1_000
+            timeoutMillis = 100_000
+            pingPeriodMillis = 10_000
         }
         setupJwt(jwtConfiguration)
 
