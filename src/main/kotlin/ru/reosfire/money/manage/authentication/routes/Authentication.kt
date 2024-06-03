@@ -96,6 +96,7 @@ fun Application.setupAuthenticationRoutes(
             val roomId = UUID.randomUUID().toString()
             val initialRoom = Room(
                 id = roomId,
+                owner = loginPassword.login,
                 name = "${loginPassword.login}'s room",
                 shopList = ShopList(listOf()),
                 users = listOf(loginPassword.login)

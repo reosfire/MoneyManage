@@ -23,6 +23,7 @@ data class TelegramAuthData(
 @Serializable
 data class Room(
     val id: String, // UUID string
+    val owner: String, // owner login
     val name: String,
     val shopList: ShopList,
     val users: List<String>, // logins

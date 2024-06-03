@@ -76,27 +76,94 @@ private suspend inline fun PipelineContext<Unit, ApplicationCall>.commonChecks(
     block.invoke(CommonContext(roomsCollection, roomId, username))
 }
 
+private const val PRICE_LABEL = "price:"
+private const val CHECKED_LABEL = "checked:"
+private const val NAME_LABEL = "name:"
+
+fun parseQuery(query: String): Bson {
+    val priceRangeIndex = query.indexOf(PRICE_LABEL)
+    val checkedIndex = query.indexOf(CHECKED_LABEL)
+    val nameIndex = query.indexOf(NAME_LABEL)
+
+    val filters = mutableListOf<Bson>()
+
+    if (priceRangeIndex != -1) {
+        val end = query.indexOf(";", priceRangeIndex)
+        if (end != -1) {
+            val value = query.substring(priceRangeIndex + PRICE_LABEL.length ..<end)
+            val tokens = value.split("..")
+            if (tokens.size == 2) {
+                runCatching {
+                    val lowest = tokens[0].toDouble()
+                    val highest = tokens[1].toDouble()
+                    filters.add(
+                        and(
+                            Room::shopList / ShopList::items / ShopListItem::price gte lowest,
+                            Room::shopList / ShopList::items / ShopListItem::price lte highest,
+                        )
+                    )
+                }
+            }
+        }
+    }
+    if(checkedIndex != -1) {
+        val end = query.indexOf(";", checkedIndex)
+        if (end != -1) {
+            val value = query.substring(checkedIndex + CHECKED_LABEL.length ..<end)
+            when (value) {
+                "true" -> filters.add(Room::shopList / ShopList::items / ShopListItem::checked eq true)
+                "false" -> filters.add(Room::shopList / ShopList::items / ShopListItem::checked eq false)
+            }
+        }
+    }
+    if(nameIndex != -1) {
+        val end = query.indexOf(";", nameIndex)
+        if (end != -1) {
+            val value = query.substring(nameIndex + NAME_LABEL.length ..<end)
+            if (value.isNotBlank()) {
+                filters.add(Room::shopList / ShopList::items / ShopListItem::name regex value)
+            }
+        }
+    }
+
+    if (filters.isEmpty()) {
+        filters.add(Room::shopList / ShopList::items / ShopListItem::name regex query)
+    }
+
+    return and(filters)
+}
 
 fun Application.setupShopListRoutes(db: DB) {
     routing {
         authenticate {
             get("/shop-list/list") {
                 commonChecks(db) {
-                    val filters = call.parameters["filters"]
+                    val query = call.parameters["query"]
+
+                    val aggregationPipeline = mutableListOf(
+                        match(Room::id eq roomId),
+                        (Room::shopList / ShopList::items).unwind(),
+                    )
+
+                    if (!query.isNullOrBlank()) {
+                        aggregationPipeline.add(match(parseQuery(query)))
+                    }
+
+                    aggregationPipeline.add(
+                        sort(
+                            combine(
+                                ascending(Room::shopList / ShopList::items / ShopListItem::checked),
+                                ascending(Room::shopList / ShopList::items / ShopListItem::name),
+                                descending(Room::shopList / ShopList::items / ShopListItem::price),
+                            )
+                        )
+                    )
+                    aggregationPipeline.add(
+                        group("\$uuid", ShopList::items.push("\$shopList.items")),
+                    )
 
                     val shopList = roomsCollection.aggregate<ShopList>(
-                        listOf(
-                            match(Room::id eq roomId),
-                            (Room::shopList / ShopList::items).unwind(),
-                            sort(
-                                combine(
-                                    ascending(Room::shopList / ShopList::items / ShopListItem::checked),
-                                    ascending(Room::shopList / ShopList::items / ShopListItem::name),
-                                    descending(Room::shopList / ShopList::items / ShopListItem::price),
-                                )
-                            ),
-                            group("\$uuid", ShopList::items.push("\$shopList.items")),
-                        )
+                        aggregationPipeline,
                     ).first()
 
                     call.respond(shopList ?: ShopList(emptyList()))

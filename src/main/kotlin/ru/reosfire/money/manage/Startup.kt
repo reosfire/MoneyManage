@@ -17,6 +17,7 @@ import ru.reosfire.money.manage.authentication.routes.setupAuthenticationRoutes
 import ru.reosfire.money.manage.authentication.routes.setupJwt
 import ru.reosfire.money.manage.data.DB
 import ru.reosfire.money.manage.data.User
+import ru.reosfire.money.manage.rooms.setupRoomsRoutes
 import ru.reosfire.money.manage.shoplist.setupShopListRoutes
 import ru.reosfire.money.manage.telegram.TGBot
 
@@ -47,6 +48,7 @@ fun main() {
         }
         with(tgBot) { setupRoutes() }
 
+        setupRoomsRoutes(db)
         setupShopListRoutes(db)
     }
 
