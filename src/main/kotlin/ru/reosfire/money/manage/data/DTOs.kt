@@ -35,12 +35,12 @@ data class ShopList(
 
 @Serializable
 data class ShopListItem(
-    val uuid: String,
-    val name: String,
-    val price: Double,
-    val checked: Boolean,
-    val emoji: String,
-    val tags: List<Tag>,
+    val uuid: String?,
+    val name: String?,
+    val price: Double?,
+    val checked: Boolean?,
+    val emoji: String?,
+    val tags: List<Tag>?,
 )
 
 @Serializable

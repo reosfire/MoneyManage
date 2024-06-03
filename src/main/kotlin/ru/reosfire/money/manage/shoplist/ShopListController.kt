@@ -44,6 +44,8 @@ private suspend inline fun PipelineContext<Unit, ApplicationCall>.commonChecks(
     db: DB,
     block: CommonContext.() -> Unit,
 ) {
+    val s = arrayOf(1, 2, 3).shuffle()
+
     val principal = call.principal<JWTPrincipal>()
     val username = principal?.getClaim("username", String::class)
 
@@ -74,24 +76,30 @@ private suspend inline fun PipelineContext<Unit, ApplicationCall>.commonChecks(
     block.invoke(CommonContext(roomsCollection, roomId, username))
 }
 
+
 fun Application.setupShopListRoutes(db: DB) {
     routing {
         authenticate {
             get("/shop-list/list") {
                 commonChecks(db) {
                     val filters = call.parameters["filters"]
-                    val sort = call.parameters["sort"]
 
-                    val room = roomsCollection.findOne(
-                        Room::id eq roomId,
-                    )
+                    val shopList = roomsCollection.aggregate<ShopList>(
+                        listOf(
+                            match(Room::id eq roomId),
+                            (Room::shopList / ShopList::items).unwind(),
+                            sort(
+                                combine(
+                                    ascending(Room::shopList / ShopList::items / ShopListItem::checked),
+                                    ascending(Room::shopList / ShopList::items / ShopListItem::name),
+                                    descending(Room::shopList / ShopList::items / ShopListItem::price),
+                                )
+                            ),
+                            group("\$uuid", ShopList::items.push("\$shopList.items")),
+                        )
+                    ).first()
 
-                    if (room == null) {
-                        call.respond(HttpStatusCode.NotFound)
-                        return@get
-                    }
-
-                    call.respond(room.shopList)
+                    call.respond(shopList ?: ShopList(emptyList()))
                 }
             }
 
