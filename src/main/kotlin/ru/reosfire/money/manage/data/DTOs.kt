@@ -54,3 +54,9 @@ data class RoomInvite(
     val code: String,
     val roomId: String,
 )
+
+@Serializable
+data class EmojiCache(
+    val query: String,
+    val emoji: String,
+)

@@ -37,5 +37,8 @@ class DB(connectionString: ConnectionString) {
         database.getCollection("rooms")
 
     fun getRoomInvitesCollection(): CoroutineCollection<RoomInvite> =
-        database.getCollection("room_invites_collection")
+        database.getCollection("room_invites")
+
+    fun getEmojiCacheCollection(): CoroutineCollection<EmojiCache> =
+        database.getCollection("emoji_cache")
 }
