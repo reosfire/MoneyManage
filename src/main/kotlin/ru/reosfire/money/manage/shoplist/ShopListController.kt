@@ -44,8 +44,6 @@ private suspend inline fun PipelineContext<Unit, ApplicationCall>.commonChecks(
     db: DB,
     block: CommonContext.() -> Unit,
 ) {
-    val s = arrayOf(1, 2, 3).shuffle()
-
     val principal = call.principal<JWTPrincipal>()
     val username = principal?.getClaim("username", String::class)
 

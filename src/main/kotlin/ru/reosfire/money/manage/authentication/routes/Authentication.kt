@@ -113,7 +113,6 @@ fun Application.setupAuthenticationRoutes(
                 salt = salt,
                 telegramId = telegramData.userTgId!!,
                 telegramChatId = telegramData.userChatId!!,
-                rooms = listOf(roomId),
             )
 
             usersCollection.insertOne(user)

@@ -9,7 +9,6 @@ data class User (
     val salt: String,
     val telegramId: Long,
     val telegramChatId: Long,
-    val rooms: List<String>, // UUID strings
 )
 
 @Serializable
@@ -48,4 +47,10 @@ data class ShopListItem(
 data class Tag(
     val hexColor: String,
     val label: String,
+)
+
+@Serializable
+data class RoomInvite(
+    val code: String,
+    val roomId: String,
 )

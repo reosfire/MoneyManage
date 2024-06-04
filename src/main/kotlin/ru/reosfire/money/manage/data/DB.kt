@@ -35,4 +35,7 @@ class DB(connectionString: ConnectionString) {
 
     fun getRoomsCollection(): CoroutineCollection<Room> =
         database.getCollection("rooms")
+
+    fun getRoomInvitesCollection(): CoroutineCollection<RoomInvite> =
+        database.getCollection("room_invites_collection")
 }
