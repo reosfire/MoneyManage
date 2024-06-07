@@ -20,6 +20,7 @@ import java.util.*
 private data class ShopListItemAdd(
     val name: String,
     val price: Double,
+    val hiddenText: String,
     val checked: Boolean,
     val emoji: String,
     val tags: List<Tag>,
@@ -29,6 +30,7 @@ private data class ShopListItemAdd(
 private data class ShopListItemEdit(
     val name: String? = null,
     val price: Double? = null,
+    val hiddenText: String? = null,
     val checked: Boolean? = null,
     val emoji: String? = null,
     val tags: List<Tag>? = null,
@@ -186,6 +188,7 @@ fun Application.setupShopListRoutes(db: DB) {
                     editItem.price?.let { updates.add(setValue(root / ShopListItem::price, it))}
                     editItem.checked?.let { updates.add(setValue(root / ShopListItem::checked, it))}
                     editItem.emoji?.let { updates.add(setValue(root / ShopListItem::emoji, it))}
+                    editItem.hiddenText?.let { updates.add(setValue(root / ShopListItem::hiddenText, it))}
 
                     roomsCollection.updateOne(
                         filter = combine(
@@ -216,6 +219,7 @@ fun Application.setupShopListRoutes(db: DB) {
                                 checked = addItem.checked,
                                 emoji = addItem.emoji,
                                 tags = addItem.tags,
+                                hiddenText = addItem.hiddenText,
                             )
                         ),
                     )

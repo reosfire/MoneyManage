@@ -38,6 +38,7 @@ data class ShopListItem(
     val uuid: String?,
     val name: String?,
     val price: Double?,
+    val hiddenText: String?,
     val checked: Boolean?,
     val emoji: String?,
     val tags: List<Tag>?,
